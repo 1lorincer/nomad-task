@@ -4,7 +4,9 @@
 
 <template>
   <div>
-    home
+    <p class="text-4xl font-semibold">
+      Добро пожаловать !
+    </p>
   </div>
 </template>
 

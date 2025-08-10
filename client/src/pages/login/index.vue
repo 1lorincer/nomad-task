@@ -2,21 +2,22 @@
 import {reactive, ref} from "vue";
 import {useToast, InputText, Password, Button, Card, Message} from "primevue";
 import {Form} from "@primevue/forms";
+import {http} from "../../api/http.ts";
+import {useRouter} from "vue-router";
+import {Roles} from "../../const/roles.ts";
 
 interface IValues {
-  username: string;
   email: string;
   password: string;
 }
 
 interface IErrors {
-  username?: string;
   email?: string;
   password?: string;
 }
 
+const router = useRouter();
 const formData = reactive<IValues>({
-  username: "",
   email: "",
   password: ""
 });
@@ -27,7 +28,6 @@ const isLoading = ref(false);
 const formRef = ref();
 
 const initialValues = reactive<IValues>({
-  username: "",
   email: "",
   password: ""
 });
@@ -37,11 +37,6 @@ const resolver = ({values}: { values: IValues }) => {
 
   Object.keys(errors).forEach(key => delete errors[key as keyof IErrors]);
 
-  if (!formData.username.trim()) {
-    errors.username = 'Имя пользователя обязательно';
-  } else if (formData.username.length < 3) {
-    errors.username = 'Имя пользователя должно содержать минимум 3 символа';
-  }
 
   if (!formData.email.trim()) {
     errors.email = 'Email обязателен';
@@ -72,11 +67,7 @@ const resolver = ({values}: { values: IValues }) => {
 };
 
 const validateField = (field: keyof IErrors) => {
-  if (field === 'username') {
-    if (formData.username.trim() && formData.username.length >= 3) {
-      delete errors.username;
-    }
-  } else if (field === 'email') {
+  if (field === 'email') {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email.trim() && emailRegex.test(formData.email)) {
       delete errors.email;
@@ -88,8 +79,7 @@ const validateField = (field: keyof IErrors) => {
   }
 };
 const isFormValid = (): boolean => {
-  return !errors.username && !errors.email && !errors.password &&
-      formData.username.trim() !== '' &&
+  return !errors.email && !errors.password &&
       formData.email.trim() !== '' &&
       formData.password !== '';
 };
@@ -108,8 +98,12 @@ const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) =>
   isLoading.value = true;
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
+    const res = (await http.post('/auth/login', {
+      email: formData.email,
+      password: formData.password
+    })).data
+    localStorage.setItem('token', res?.token);
+    localStorage.setItem('role', res?.role === Roles.USER ? Roles.USER : Roles.ADMIN);
     toast.add({
       severity: 'success',
       summary: 'Успешно',
@@ -118,13 +112,11 @@ const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) =>
     });
 
     Object.assign(formData, {
-      username: "",
       email: "",
       password: ""
     });
 
     Object.assign(initialValues, {
-      username: "",
       email: "",
       password: ""
     });
@@ -134,7 +126,9 @@ const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) =>
     if (formRef.value) {
       formRef.value.reset();
     }
-
+    if(res.token) {
+      await router.push('/');
+    }
   } catch (error) {
     toast.add({
       severity: 'error',
@@ -147,9 +141,6 @@ const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) =>
   }
 };
 
-const onUsernameChange = () => {
-  validateField('username');
-};
 
 const onEmailChange = () => {
   validateField('email');
@@ -174,30 +165,9 @@ const onPasswordChange = () => {
             ref="formRef"
             :initialValues
             :resolver="resolver"
-            @submit.prevent="onSubmit"
+            @submit="onSubmit"
             class="space-y-6"
         >
-          <div class="space-y-2">
-            <label for="username" class="block text-sm font-medium text-white">
-              Имя пользователя
-            </label>
-            <InputText
-                id="username"
-                v-model="formData.username"
-                :invalid="!!errors.username"
-                placeholder="Введите имя пользователя"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                @input="onUsernameChange"
-            />
-            <Message
-                v-if="errors.username"
-                :closable="false"
-                severity="error"
-                class="mt-1 text-sm"
-            >
-              {{ errors.username }}
-            </Message>
-          </div>
           <div class="space-y-2">
             <label for="email" class="block text-sm font-medium text-white">
               Email

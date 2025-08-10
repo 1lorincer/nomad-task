@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import {reactive, ref} from "vue";
-import {useToast, InputText, Password, Card, Message, Button} from "primevue";
+import {useRouter} from "vue-router";
+import {Button, Card, InputText, Message, Password, useToast} from "primevue";
 import {Form} from "@primevue/forms";
+import {http} from "../../api/http.ts";
+import type {IToken} from "../../types/token.ts";
+import {Roles} from "../../const/roles.ts";
 
 interface IValues {
   username: string;
@@ -29,7 +33,7 @@ const formData = reactive<IValues>({
   firstName: "",
   lastName: "",
 });
-
+const router = useRouter();
 const errors = reactive<IErrors>({});
 const toast = useToast();
 const isLoading = ref(false);
@@ -155,9 +159,17 @@ const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) =>
   isLoading.value = true;
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    console.log('Данные для регистрации:', formData);
+    const res: IToken = (await http.post('/auth/register', {
+      username: formData.username,
+      email: formData.email,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+      role: 'user'
+    })).data
+    localStorage.setItem('token', res?.token);
+    localStorage.setItem('role', res?.role === Roles.USER ? Roles.USER : Roles.ADMIN);
 
     toast.add({
       severity: 'success',
@@ -166,7 +178,6 @@ const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) =>
       life: 5000
     });
 
-    // Очистка формы после успешной регистрации
     Object.assign(formData, {
       username: "",
       email: "",
@@ -190,8 +201,11 @@ const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) =>
     if (formRef.value) {
       formRef.value.reset();
     }
-
+    if (res.token) {
+      await router.push('/');
+    }
   } catch (error) {
+    console.log("toast", toast)
     toast.add({
       severity: 'error',
       summary: 'Ошибка',
@@ -321,7 +335,6 @@ const onConfirmPasswordChange = () => validateField('confirmPassword');
             </Message>
           </div>
 
-          <!-- Поле Password -->
           <div class="space-y-2">
             <label for="password" class="block text-sm font-medium text-white">
               Пароль
@@ -343,7 +356,7 @@ const onConfirmPasswordChange = () => validateField('confirmPassword');
                 severity="error"
                 class="mt-1 text-sm"
             >
-              {{ errors.password }}
+              {{ errors.password }}lox
             </Message>
           </div>
           <div class="space-y-2">
