@@ -1,4 +1,5 @@
 import {createRouter, createWebHistory} from "vue-router";
+import Home from "../pages/home/index.vue";
 
 export const routerConifg = createRouter({
     history: createWebHistory(),
@@ -6,12 +7,22 @@ export const routerConifg = createRouter({
         {
             path: '/',
             name: 'home',
-            component: () => import('../views/Home.vue')
+            component: Home
         },
         {
-            path: '/products',
-            name: 'products',
-            component: () => import('../views/Products.vue')
+            path: '/orders',
+            name: 'orders',
+            component: () => import("../pages/orders/index.vue")
+        },
+        {
+            path: "/login",
+            name: "login",
+            component: () => import("../pages/login/index.vue")
+        },
+        {
+            path: "/signup",
+            name: "signup",
+            component: () => import("../pages/signup/index.vue")
         }
     ]
 })
