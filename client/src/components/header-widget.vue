@@ -15,10 +15,10 @@ const router = useRouter();
     </template>
     <template #end>
       <div class="flex gap-2">
-        <Button @click="router.push('/login')"  severity="success" class="w-36">
+        <Button @click="router.push('/login')"  severity="success" class="w-28 md:w-36">
           Войти
         </Button>
-        <Button @click="router.push('/signuppp')" severity="secondary" class="w-36">
+        <Button @click="router.push('/signup')" severity="secondary" class="w-28 md:w-36">
           Регистрация
         </Button>
       </div>

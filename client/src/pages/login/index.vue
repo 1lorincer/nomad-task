@@ -166,7 +166,7 @@ const onPasswordChange = () => {
 
 <template>
   <div class="flex items-center justify-center min-h-screen p-4">
-    <Card class="w-full max-w-md shadow-2xl backdrop-blur-sm bg-white/95 rounded-2xl border border-white/20">
+    <Card class="w-full max-w-md bg-white/95 rounded-2xl border border-white/20">
       <template #title>
         <h2 class="text-2xl font-bold text-center text-white mb-2">
           Авторизация
@@ -253,7 +253,6 @@ const onPasswordChange = () => {
                 type="submit"
                 label="Войти"
                 :loading="isLoading"
-                loadingIcon="pi pi-spin pi-spinner"
                 severity="success"
                 class="w-full py-3 px-6 text-white font-semibold"
                 size="large"
@@ -269,30 +268,3 @@ const onPasswordChange = () => {
     </Card>
   </div>
 </template>
-
-<style scoped>
-/* Дополнительные стили для PrimeVue компонентов */
-:deep(.p-password-input) {
-  @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors;
-}
-
-:deep(.p-button) {
-  @apply border-none;
-}
-
-:deep(.p-card) {
-  @apply border-none;
-}
-
-:deep(.p-card-title) {
-  @apply p-0 mb-4;
-}
-
-:deep(.p-card-content) {
-  @apply p-6;
-}
-
-:deep(.p-message) {
-  @apply border-none rounded-md;
-}
-</style>
