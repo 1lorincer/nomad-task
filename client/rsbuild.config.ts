@@ -4,7 +4,7 @@ import {pluginVue} from '@rsbuild/plugin-vue';
 export default defineConfig({
     plugins: [pluginVue()],
     server: {
-        port: 7000
+        port: 5050
     },
     tools: {
         postcss: {
