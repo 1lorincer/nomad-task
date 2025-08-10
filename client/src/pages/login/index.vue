@@ -117,7 +117,6 @@ const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) =>
       life: 3000
     });
 
-    // Очистка формы после успешной авторизации
     Object.assign(formData, {
       username: "",
       email: "",
@@ -130,10 +129,8 @@ const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) =>
       password: ""
     });
 
-    // Очищаем ошибки
     Object.keys(errors).forEach(key => delete errors[key as keyof IErrors]);
 
-    // Сброс формы PrimeVue
     if (formRef.value) {
       formRef.value.reset();
     }
@@ -150,7 +147,6 @@ const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) =>
   }
 };
 
-// Обработчики изменения полей
 const onUsernameChange = () => {
   validateField('username');
 };

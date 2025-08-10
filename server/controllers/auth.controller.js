@@ -1,90 +1,25 @@
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { validationResult } from 'express-validator';
-import db from '../models/index.js';
+import {User} from '../models/index.js';
 
-const { User } = db;
-
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE
-    });
-};
-
-export const register = async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        const { email, password, role } = req.body;
-
-        // Проверка существования пользователя
-        const existingUser = await User.findOne({ where: { email } });
-        if (existingUser) {
-            return res.status(400).json({ message: 'Пользователь уже существует' });
-        }
-
-        // Создание пользователя
-        const user = await User.create({
-            email,
-            password,
-            role: role || 'user'
-        });
-
-        const token = generateToken(user.id);
-
-        res.status(201).json({
-            message: 'Пользователь успешно зарегистрирован',
-            token,
-            user: {
-                id: user.id,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+class AuthController {
+    async register(req, res) {
+        const {username, firstName, lastName, email, password, role = 'user'} = req.body;
+        const passwordHash = await bcrypt.hash(password, 10);
+        const user = await User.create({username, firstName, lastName, email, passwordHash, role});
+        const token = jwt.sign({id: user.id, role: user.role}, process.env.JWT_SECRET, {expiresIn: '7d'});
+        res.status(201).json({token});
     }
-};
 
-export const login = async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        const { email, password } = req.body;
-
-        // Поиск пользователя
-        const user = await User.findOne({ where: { email } });
-        if (!user || !(await user.comparePassword(password))) {
-            return res.status(401).json({ message: 'Неверные учетные данные' });
-        }
-
-        const token = generateToken(user.id);
-
-        res.json({
-            message: 'Успешный вход',
-            token,
-            user: {
-                id: user.id,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    async login(req, res) {
+        const {email, password} = req.body;
+        const user = await User.findOne({where: {email}});
+        if (!user) return res.status(401).json({message: 'Bad credentials'});
+        const ok = await bcrypt.compare(password, user.passwordHash);
+        if (!ok) return res.status(401).json({message: 'Bad credentials'});
+        const token = jwt.sign({id: user.id, role: user.role}, process.env.JWT_SECRET, {expiresIn: '7d'});
+        res.json({token});
     }
-};
+}
 
-export const getProfile = async (req, res) => {
-    res.json({
-        user: {
-            id: req.user.id,
-            email: req.user.email,
-            role: req.user.role
-        }
-    });
-};
+export default new AuthController();

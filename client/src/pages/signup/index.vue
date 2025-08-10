@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { reactive, ref } from "vue";
-import { useToast,InputText, Password, Card, Message, Button } from "primevue";
-import { Form } from "@primevue/forms";
+import {reactive, ref} from "vue";
+import {useToast, InputText, Password, Card, Message, Button} from "primevue";
+import {Form} from "@primevue/forms";
 
 interface IValues {
   username: string;
@@ -10,7 +10,6 @@ interface IValues {
   confirmPassword: string;
   firstName: string;
   lastName: string;
-  acceptTerms: boolean;
 }
 
 interface IErrors {
@@ -20,7 +19,6 @@ interface IErrors {
   confirmPassword?: string;
   firstName?: string;
   lastName?: string;
-  acceptTerms?: string;
 }
 
 const formData = reactive<IValues>({
@@ -30,7 +28,6 @@ const formData = reactive<IValues>({
   confirmPassword: "",
   firstName: "",
   lastName: "",
-  acceptTerms: false
 });
 
 const errors = reactive<IErrors>({});
@@ -45,10 +42,9 @@ const initialValues = reactive<IValues>({
   confirmPassword: "",
   firstName: "",
   lastName: "",
-  acceptTerms: false
 });
 
-const resolver = ({ values }: { values: IValues }) => {
+const resolver = ({values}: { values: IValues }) => {
   Object.assign(formData, values);
 
   Object.keys(errors).forEach(key => delete errors[key as keyof IErrors]);
@@ -93,15 +89,10 @@ const resolver = ({ values }: { values: IValues }) => {
   } else if (formData.password !== formData.confirmPassword) {
     errors.confirmPassword = 'Пароли не совпадают';
   }
-
-  if (!formData.acceptTerms) {
-    errors.acceptTerms = 'Необходимо принять условия использования';
-  }
-
   const primeVueErrors: any = {};
   Object.keys(errors).forEach(key => {
     if (errors[key as keyof IErrors]) {
-      primeVueErrors[key] = [{ message: errors[key as keyof IErrors] }];
+      primeVueErrors[key] = [{message: errors[key as keyof IErrors]}];
     }
   });
 
@@ -141,17 +132,16 @@ const validateField = (field: keyof IErrors) => {
 };
 
 const isFormValid = (): boolean => {
-  return !errors.firstName && !errors.lastName && !errors.username && !errors.email && !errors.password && !errors.confirmPassword && !errors.acceptTerms &&
+  return !errors.firstName && !errors.lastName && !errors.username && !errors.email && !errors.password && !errors.confirmPassword &&
       formData.firstName.trim() !== '' &&
       formData.lastName.trim() !== '' &&
       formData.username.trim() !== '' &&
       formData.email.trim() !== '' &&
       formData.password !== '' &&
-      formData.confirmPassword !== '' &&
-      formData.acceptTerms;
+      formData.confirmPassword !== ''
 };
 
-const onSubmit = async ({ values, valid }: { values: IValues; valid: boolean }) => {
+const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) => {
   if (!valid || !isFormValid()) {
     toast.add({
       severity: 'error',
@@ -184,7 +174,6 @@ const onSubmit = async ({ values, valid }: { values: IValues; valid: boolean }) 
       confirmPassword: "",
       firstName: "",
       lastName: "",
-      acceptTerms: false
     });
 
     Object.assign(initialValues, {
@@ -194,7 +183,6 @@ const onSubmit = async ({ values, valid }: { values: IValues; valid: boolean }) 
       confirmPassword: "",
       firstName: "",
       lastName: "",
-      acceptTerms: false
     });
 
     Object.keys(errors).forEach(key => delete errors[key as keyof IErrors]);

@@ -1,7 +1,9 @@
 <template>
   <div>
     <header-widget/>
-    <router-view></router-view>
+    <main class="min-h-screen">
+      <router-view></router-view>
+    </main>
     <footer-widget/>
   </div>
 </template>

@@ -5,7 +5,7 @@ const router = useRouter();
 </script>
 
 <template>
-  <Menubar class="!py-5">
+  <Menubar class="!py-5 !px-16">
     <template #start>
       <div class="text-2xl font-semibold">
         <router-link to="/">

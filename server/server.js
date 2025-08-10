@@ -1,14 +1,17 @@
-import express from 'express'
-import {router} from "./routes/index.js";
+import {sequelize} from './models/index.js';
+import app from "./app.js"
+const PORT = process.env.PORT || 3000;
 
-const app = express()
-const PORT = 8080
+const startApp = async () => {
+    try {
+        await sequelize.authenticate();
+        console.log(`Db connected: ${sequelize.config.database}`)
+        app.listen(PORT, () => {
+            console.log(`Example app listening on port http://localhost:${PORT}`)
+        })
+    } catch (error) {
+        console.log(`Server crashed: ${error}`)
+    }
+}
 
-app.use(express.json())
-app.use("/api", router)
-app.get('/', (req, res) => {
-    res.send('Hello World!')
-})
-app.listen(PORT, () => {
-    console.log(`Example app listening on port http://localhost:${PORT}`)
-})
+startApp();
