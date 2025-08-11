@@ -1,5 +1,6 @@
 import {createRouter, createWebHistory} from "vue-router";
 import Home from "../pages/home/index.vue";
+import {useUserStore} from "../store/user.ts";
 
 export const routerConifg = createRouter({
     history: createWebHistory(),
@@ -12,7 +13,8 @@ export const routerConifg = createRouter({
         {
             path: '/orders',
             name: 'orders',
-            component: () => import("../pages/orders/index.vue")
+            component: () => import("../pages/orders/index.vue"),
+            meta: {requiresAuth: true}
         },
         {
             path: "/login",
@@ -25,4 +27,15 @@ export const routerConifg = createRouter({
             component: () => import("../pages/signup/index.vue")
         },
     ]
+})
+
+routerConifg.beforeEach((to, _, next) => {
+
+    if (to.meta.requiresAuth && !useUserStore().isAuthed) {
+        next('/login')
+    } else if (to.meta.requiresGuest && !useUserStore().isAuthed) {
+        next('/')
+    } else {
+        next()
+    }
 })

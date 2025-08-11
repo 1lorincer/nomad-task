@@ -4,8 +4,6 @@ import {useRouter} from "vue-router";
 import {useUserStore} from "../store/user.ts";
 
 const router = useRouter()
-
-
 const handleExit = () => {
   useUserStore().logout()
   router.push('/')
@@ -22,7 +20,14 @@ const handleExit = () => {
       </div>
     </template>
     <template #end>
-      <div v-if="useUserStore().isAuthed">
+      <div v-if="useUserStore().isAuthed" class="flex gap-2">
+        <Button
+            @click="router.push('/orders')"
+            class="w-28 md:w-36"
+            severity="info"
+        >
+          Заказы
+        </Button>
         <Button @click="handleExit" severity="danger" class="w-28 md:w-36 !text-white">
           Выйти
         </Button>

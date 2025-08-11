@@ -1,2 +1,6 @@
 export const money = (n: number | string) =>
-    Number(n).toLocaleString('ru-RU', {style: 'currency', currency: 'KZT', maximumFractionDigits: 0})
+    Number(n).toLocaleString('ru-RU', {
+        style: 'currency',
+        currency: 'KZT',
+        maximumFractionDigits: 0
+    })

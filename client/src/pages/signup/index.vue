@@ -4,7 +4,7 @@ import {useRouter} from "vue-router";
 import {Button, Card, InputText, Message, Password, useToast} from "primevue";
 import {Form} from "@primevue/forms";
 import {http} from "../../api/http.ts";
-import type {IToken} from "../../types/token.ts";
+import type {IToken} from "../../types/user.ts";
 import {useUserStore} from "../../store/user.ts";
 
 interface IValues {
