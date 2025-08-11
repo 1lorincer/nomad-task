@@ -45,3 +45,8 @@ docker build -t nomad-task .
 ```bash
 docker run -it --rm -p 5050:5050 nomad-task
 ```
+### пример env
+```dotenv
+PUBLIC_API_URL=http://localhost:7070/api
+NODE_ENV=development
+```
