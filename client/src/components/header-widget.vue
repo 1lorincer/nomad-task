@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import {Button, Menubar} from "primevue";
 import {useRouter} from "vue-router";
-const router = useRouter();
+import {useUserStore} from "../store/user.ts";
+
+const router = useRouter()
+
+
+const handleExit = () => {
+  useUserStore().logout()
+  router.push('/')
+}
 </script>
 
 <template>
@@ -14,8 +22,13 @@ const router = useRouter();
       </div>
     </template>
     <template #end>
-      <div class="flex gap-2">
-        <Button @click="router.push('/login')"  severity="success" class="w-28 md:w-36">
+      <div v-if="useUserStore().isAuthed">
+        <Button @click="handleExit" severity="danger" class="w-28 md:w-36 !text-white">
+          Выйти
+        </Button>
+      </div>
+      <div class="flex gap-2" v-else>
+        <Button @click="router.push('/login')" severity="success" class="w-28 md:w-36">
           Войти
         </Button>
         <Button @click="router.push('/signup')" severity="secondary" class="w-28 md:w-36">

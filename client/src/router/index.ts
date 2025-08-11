@@ -23,6 +23,6 @@ export const routerConifg = createRouter({
             path: "/signup",
             name: "signup",
             component: () => import("../pages/signup/index.vue")
-        }
+        },
     ]
 })

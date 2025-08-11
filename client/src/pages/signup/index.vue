@@ -5,7 +5,7 @@ import {Button, Card, InputText, Message, Password, useToast} from "primevue";
 import {Form} from "@primevue/forms";
 import {http} from "../../api/http.ts";
 import type {IToken} from "../../types/token.ts";
-import {Roles} from "../../const/roles.ts";
+import {useUserStore} from "../../store/user.ts";
 
 interface IValues {
   username: string;
@@ -33,7 +33,9 @@ const formData = reactive<IValues>({
   firstName: "",
   lastName: "",
 });
+
 const router = useRouter();
+const {setUserData} = useUserStore()
 const errors = reactive<IErrors>({});
 const toast = useToast();
 const isLoading = ref(false);
@@ -168,8 +170,7 @@ const onSubmit = async ({values, valid}: { values: IValues; valid: boolean }) =>
       confirmPassword: formData.confirmPassword,
       role: 'user'
     })).data
-    localStorage.setItem('token', res?.token);
-    localStorage.setItem('role', res?.role === Roles.USER ? Roles.USER : Roles.ADMIN);
+    setUserData(res)
 
     toast.add({
       severity: 'success',
