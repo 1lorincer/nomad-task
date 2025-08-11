@@ -3,7 +3,8 @@
 import {onMounted, ref, computed} from 'vue'
 import {useRouter} from 'vue-router'
 import {DataTable, Column, Button, Tag, Card, Toolbar, Dropdown, Dialog, useToast} from 'primevue'
-import {useOrders} from "../../composables/useOrders.ts";
+import {useOrders} from '../../composables/useOrders.ts'
+import {money} from "../../utils/money.ts";
 import {useUserStore} from "../../store/user.ts";
 import {Roles} from "../../const/roles.ts";
 
@@ -130,7 +131,7 @@ const handleUpdateStatus = async () => {
 
 const canCancelOrder = (order: any) => {
   return ['pending', 'confirmed'].includes(order.status) &&
-      (isAdmin.value || order.user_id === user.value?.id)
+      (isAdmin.value || order.user_id === useUserStore().userData?.user?.id)
 }
 
 onMounted(() => {
@@ -147,7 +148,7 @@ onMounted(() => {
             {{ isAdmin ? 'Все заказы' : 'Мои заказы' }}
           </h1>
           <Button
-              @click="router.push('/products')"
+              @click="router.push('/')"
               label="К товарам"
               icon="pi pi-arrow-left"
               severity="secondary"
@@ -196,8 +197,6 @@ onMounted(() => {
               #{{ data.id }}
             </template>
           </Column>
-
-          <Column v-if="isAdmin" field="User.name" header="Пользователь" sortable/>
 
           <Column field="total_amount" header="Сумма" sortable>
             <template #body="{ data }">
@@ -264,6 +263,7 @@ onMounted(() => {
       </template>
     </Card>
 
+    <!-- Диалог деталей заказа -->
     <Dialog
         v-model:visible="showOrderDialog"
         header="Детали заказа"
@@ -343,6 +343,7 @@ onMounted(() => {
       </div>
     </Dialog>
 
+    <!-- Диалог изменения статуса (только для админа) -->
     <Dialog
         v-model:visible="showStatusDialog"
         header="Изменить статус заказа"

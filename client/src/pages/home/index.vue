@@ -14,7 +14,9 @@ const {
 
   getProducts, handleCreate, resetDraft,
   openEdit, handleUpdate, resetEdit,
-  handleRemove, addToOrder,
+  handleRemove,
+  creatingOrderId,
+  createOrderForProduct
 } = useProducts()
 
 onMounted(getProducts)
@@ -79,7 +81,8 @@ onMounted(getProducts)
           <div class="text-2xl font-bold mb-4">{{ money(p.price) }}</div>
           <Button :disabled="p.stock <= 0" class="w-full"
                   :severity="p.stock > 0 ? 'success' : 'secondary'"
-                  @click="addToOrder(p)">
+                  :loading="creatingOrderId === p.id"
+                  @click="createOrderForProduct(p)">
             <template v-if="p.stock > 0">Добавить в заказ</template>
             <template v-else>Нет в наличии</template>
           </Button>

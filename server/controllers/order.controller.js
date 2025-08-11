@@ -4,30 +4,44 @@ import ExternalApiService from '../service/external-api.service.js';
 
 class OrderController {
     async create(req, res) {
-        const {userId, items, shippingCost = 0} = req.body;
+        const {items, shippingCost = 0, deliveryAddress, notes} = req.body;
+        const {id: userId} = req.user;
         const tx = await sequelize.transaction();
 
         try {
+            for (const item of items) {
+                const product = await Product.findByPk(item.productId, {
+                    transaction: tx
+                });
+
+                if (!product) {
+                    await tx.rollback();
+                    return res.status(400).json({
+                        message: `Товар с ID ${item.productId} не найден`
+                    });
+                }
+
+                if (product.stock < item.quantity) {
+                    await tx.rollback();
+                    return res.status(400).json({
+                        message: `Недостаточно на складе: ${product.title}. Доступно: ${product.stock}, запрошено: ${item.quantity}`
+                    });
+                }
+            }
             const order = await Order.create({
                 user_id: userId,
-                shipping_cost: shippingCost,
+                shipping_cost: parseFloat(shippingCost),
+                delivery_address: deliveryAddress,
+                notes: notes,
                 status: 'pending'
             }, {transaction: tx});
 
             let totalAmount = 0;
-
             for (const item of items) {
                 const product = await Product.findByPk(item.productId, {
                     transaction: tx,
-                    lock: tx.LOCK.UPDATE
+                    lock: true
                 });
-
-                if (!product || product.stock < item.quantity) {
-                    await tx.rollback();
-                    return res.status(400).json({
-                        message: `Недостаточно на складе: ${product?.title || 'товар не найден'}`
-                    });
-                }
 
                 await product.update({
                     stock: product.stock - item.quantity
@@ -37,14 +51,14 @@ class OrderController {
                     order_id: order.id,
                     product_id: product.id,
                     quantity: item.quantity,
-                    price_at_moment: product.price
+                    price_at_moment: parseFloat(product.price)
                 }, {transaction: tx});
 
-                totalAmount += product.price * item.quantity;
+                totalAmount += parseFloat(product.price) * item.quantity;
             }
 
             await order.update({
-                total_amount: totalAmount + shippingCost,
+                total_amount: totalAmount + parseFloat(shippingCost),
                 status: 'confirmed'
             }, {transaction: tx});
 
@@ -53,26 +67,32 @@ class OrderController {
             try {
                 const shippingInfo = await ExternalApiService.calculateShipping({
                     orderId: order.id,
-                    totalAmount: totalAmount
+                    totalAmount: totalAmount,
+                    deliveryAddress: deliveryAddress
                 });
-                if (shippingInfo?.estimatedDelivery) {
+
+                if (shippingInfo?.estimatedDelivery || shippingInfo?.trackingNumber) {
                     await order.update({
-                        estimated_delivery: shippingInfo.estimatedDelivery
+                        estimated_delivery: shippingInfo.estimatedDelivery,
+                        tracking_number: shippingInfo.trackingNumber
                     });
                 }
             } catch (externalError) {
                 console.log('Ошибка внешнего сервиса:', externalError.message);
             }
 
-            NotificationService.addToQueue('orderCreated', {
-                orderId: order.id,
-                userId: userId
-            });
+            if (NotificationService?.addToQueue) {
+                NotificationService.addToQueue('orderCreated', {
+                    orderId: order.id,
+                    userId: userId
+                });
+            }
 
             res.status(201).json({
                 id: order.id,
-                totalAmount: totalAmount + shippingCost,
-                status: 'confirmed'
+                totalAmount: totalAmount + parseFloat(shippingCost),
+                status: 'confirmed',
+                message: 'Заказ успешно создан'
             });
 
         } catch (error) {
@@ -87,7 +107,7 @@ class OrderController {
 
     async getAll(req, res) {
         try {
-            const {userId, role} = req.user;
+            const {id: userId, role} = req.user;
 
             let whereClause = {};
             if (role !== 'admin') {
@@ -99,7 +119,7 @@ class OrderController {
                 include: [
                     {
                         model: User,
-                        attributes: ['id', 'name', 'email']
+                        attributes: ['id', 'firstName', 'lastName', 'email']
                     },
                     {
                         model: OrderItem,
@@ -125,9 +145,9 @@ class OrderController {
     async getById(req, res) {
         try {
             const {id} = req.params;
-            const {userId, role} = req.user;
+            const {id: userId, role} = req.user;
 
-            let whereClause = {id};
+            let whereClause = {id: parseInt(id)};
             if (role !== 'admin') {
                 whereClause.user_id = userId;
             }
@@ -170,28 +190,46 @@ class OrderController {
             const {role} = req.user;
 
             if (role !== 'admin') {
-                return res.status(403).json({message: 'Недостаточно прав'});
+                return res.status(403).json({message: 'Недостаточно прав доступа'});
             }
 
             const validStatuses = ['pending', 'confirmed', 'rejected', 'cancelled', 'shipped', 'delivered'];
             if (!validStatuses.includes(status)) {
-                return res.status(400).json({message: 'Некорректный статус'});
+                return res.status(400).json({
+                    message: 'Некорректный статус',
+                    validStatuses: validStatuses
+                });
             }
 
-            const order = await Order.findByPk(id);
+            const order = await Order.findByPk(parseInt(id));
             if (!order) {
                 return res.status(404).json({message: 'Заказ не найден'});
             }
 
+            if (order.status === 'cancelled' || order.status === 'delivered') {
+                return res.status(400).json({
+                    message: 'Нельзя изменить статус отмененного или доставленного заказа'
+                });
+            }
+
+            const oldStatus = order.status;
             await order.update({status});
+            if (NotificationService?.addToQueue) {
+                NotificationService.addToQueue('orderStatusChanged', {
+                    orderId: order.id,
+                    userId: order.user_id,
+                    oldStatus: oldStatus,
+                    newStatus: status
+                });
+            }
 
-            NotificationService.addToQueue('orderStatusChanged', {
-                orderId: order.id,
-                userId: order.user_id,
-                newStatus: status
+            res.json({
+                message: 'Статус заказа обновлен',
+                order: {
+                    id: order.id,
+                    status: status
+                }
             });
-
-            res.json({message: 'Статус заказа обновлен', order});
         } catch (error) {
             console.error('Ошибка обновления статуса:', error);
             res.status(500).json({
@@ -203,18 +241,24 @@ class OrderController {
 
     async cancel(req, res) {
         const {id} = req.params;
-        const {userId, role} = req.user;
+        const {id: userId, role} = req.user;
         const tx = await sequelize.transaction();
 
         try {
-            let whereClause = {id, status: ['pending', 'confirmed']};
+            let whereClause = {
+                id: parseInt(id),
+                status: ['pending', 'confirmed']
+            };
+
             if (role !== 'admin') {
                 whereClause.user_id = userId;
             }
 
             const order = await Order.findOne({
                 where: whereClause,
-                include: [OrderItem],
+                include: [{
+                    model: OrderItem
+                }],
                 transaction: tx
             });
 
@@ -228,7 +272,7 @@ class OrderController {
             for (const item of order.OrderItems) {
                 const product = await Product.findByPk(item.product_id, {
                     transaction: tx,
-                    lock: tx.LOCK.UPDATE
+                    lock: true
                 });
 
                 if (product) {
@@ -241,12 +285,17 @@ class OrderController {
             await order.update({status: 'cancelled'}, {transaction: tx});
             await tx.commit();
 
-            NotificationService.addToQueue('orderCancelled', {
-                orderId: order.id,
-                userId: order.user_id
-            });
+            if (NotificationService?.addToQueue) {
+                NotificationService.addToQueue('orderCancelled', {
+                    orderId: order.id,
+                    userId: order.user_id
+                });
+            }
 
-            res.json({message: 'Заказ отменен'});
+            res.json({
+                message: 'Заказ отменен',
+                orderId: order.id
+            });
         } catch (error) {
             await tx.rollback();
             console.error('Ошибка отмены заказа:', error);

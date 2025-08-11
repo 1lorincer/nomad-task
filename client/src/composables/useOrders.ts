@@ -1,4 +1,5 @@
-import { ref, computed } from 'vue'
+import {ref, computed} from 'vue'
+import {useToast} from "primevue";
 import {http} from "../api/http.ts";
 
 interface OrderItem {
@@ -47,7 +48,7 @@ const isLoading = ref(false)
 const error = ref<string | null>(null)
 
 export function useOrders() {
-
+    const toast = useToast()
     const createOrder = async (orderData: {
         items: OrderItem[]
         shippingCost?: number
@@ -86,6 +87,12 @@ export function useOrders() {
             const response = await http.get('/orders')
             orders.value = response.data
         } catch (err: any) {
+            toast.add({
+                severity: 'error',
+                summary: err.response?.data?.message,
+                detail: err,
+                life: 3000
+            })
             error.value = err.response?.data?.message || err.message || 'Ошибка загрузки заказов'
         } finally {
             isLoading.value = false
@@ -113,7 +120,7 @@ export function useOrders() {
         error.value = null
 
         try {
-            const response = await http.patch(`/orders/${id}/status`, { status })
+            const response = await http.patch(`/orders/${id}/status`, {status})
 
             await getOrders()
             return response.data

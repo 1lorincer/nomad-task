@@ -7,13 +7,6 @@ import {Roles} from '../const/roles.ts'
 export type Product = { id: number; title: string; price: number | string; stock: number }
 export type Draft = { title: string; price: number | null; stock: number | null; description?: string }
 
-export type CartItem = {
-    productId: number
-    title: string
-    price: number
-    quantity: number
-    stock: number
-}
 
 export function useProducts() {
     const toast = useToast()
@@ -27,6 +20,7 @@ export function useProducts() {
 
     const createOpen = ref(false)
     const createDraft = ref<Draft>({title: '', price: null, stock: null, description: ''})
+    const creatingOrderId = ref<number | null>(null)
 
     const editOpen = ref(false)
     const editDraft = ref<Draft>({title: '', price: null, stock: null, description: ''})
@@ -35,13 +29,11 @@ export function useProducts() {
 
     const deletingId = ref<number | null>(null)
 
-    const cartItems = ref<CartItem[]>([])
-    const isOpen = ref(false)
 
     const validateDraft = (d: Draft): string | null => {
         if (!d.title.trim()) return 'Название обязательно'
         if (d.price == null || Number.isNaN(d.price) || Number(d.price) < 0) return 'Цена указана неверно'
-        if (d.stock == null || !Number.isInteger(d.stock) || Number(d.stock) < 0) return 'Остаток указан неверно'
+        if (d.stock == null || !Number.isInteger(d.stock) || !d.stock || Number(d.stock) < 0) return 'Остаток указан неверно'
         return null
     }
 
@@ -64,6 +56,37 @@ export function useProducts() {
             error.value = e?.response?.data?.message || 'Не удалось загрузить товары'
         } finally {
             isLoading.value = false
+        }
+    }
+
+    async function createOrderForProduct(p: Product) {
+        if (Number(p.stock) <= 0) {
+            toast.add({severity: 'warn', summary: 'Нет на складе', detail: `«${p.title}» недоступен`, life: 2500})
+            return
+        }
+        try {
+            creatingOrderId.value = p.id
+            const payload = {
+                items: [{productId: p.id, quantity: 1}],
+                deliveryAddress: '',
+                shippingCost: 0,
+                notes: ''
+            }
+
+            const {data} = await http.post('/orders', payload, {
+                headers: {Authorization: `Bearer ${user.userData.token}`}
+            })
+
+            toast.add({
+                severity: 'success',
+                summary: 'Заказ создан',
+                detail: `№ ${data.id} на «${p.title}»`,
+                life: 3500
+            })
+        } catch (e) {
+            //@ts-ignore
+            const msg = e?.response?.data?.message || 'Не удалось создать заказ'
+            toast.add({severity: 'error', summary: 'Ошибка', detail: msg, life: 4000})
         }
     }
 
@@ -160,85 +183,6 @@ export function useProducts() {
         }
     }
 
-    function addToOrder(p: Product) {
-        const existingItem = cartItems.value.find(item => item.productId === p.id)
-
-        if (existingItem) {
-            if (existingItem.quantity < p.stock) {
-                existingItem.quantity++
-                toast.add({
-                    severity: 'success',
-                    summary: 'Добавлено',
-                    detail: `${p.title} добавлен в корзину`,
-                    life: 2000
-                })
-            } else {
-                toast.add({
-                    severity: 'warn',
-                    summary: 'Недостаточно товара',
-                    detail: `В наличии только ${p.stock} шт.`,
-                    life: 3000
-                })
-            }
-        } else {
-            cartItems.value.push({
-                productId: p.id,
-                title: p.title,
-                price: Number(p.price),
-                quantity: 1,
-                stock: p.stock
-            })
-            toast.add({
-                severity: 'success',
-                summary: 'Добавлено',
-                detail: `${p.title} добавлен в корзину`,
-                life: 2000
-            })
-        }
-
-        isOpen.value = true
-    }
-
-    function removeFromCart(productId: number) {
-        const index = cartItems.value.findIndex(item => item.productId === productId)
-        if (index > -1) {
-            cartItems.value.splice(index, 1)
-        }
-    }
-
-    function updateQuantity(productId: number, quantity: number) {
-        const item = cartItems.value.find(item => item.productId === productId)
-        if (item) {
-            if (quantity <= 0) {
-                removeFromCart(productId)
-            } else if (quantity <= item.stock) {
-                item.quantity = quantity
-            } else {
-                toast.add({
-                    severity: 'warn',
-                    summary: 'Недостаточно товара',
-                    detail: `В наличии только ${item.stock} шт.`,
-                    life: 3000
-                })
-            }
-        }
-    }
-
-    function clearCart() {
-        cartItems.value = []
-        isOpen.value = false
-    }
-
-
-    const totalItems = computed(() =>
-        cartItems.value.reduce((sum, item) => sum + item.quantity, 0)
-    )
-
-    const totalAmount = computed(() =>
-        cartItems.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    )
-
-    const isEmpty = computed(() => cartItems.value.length === 0)
 
     return {
         products, isLoading, error,
@@ -252,19 +196,9 @@ export function useProducts() {
         openEdit,
         handleUpdate,
         handleRemove,
-        addToOrder,
-
         resetDraft,
         resetEdit,
-
-        cartItems,
-        isOpen,
-        totalItems,
-        totalAmount,
-        isEmpty,
-        updateQuantity,
-        removeFromCart,
-        clearCart,
-        toggleCart
+        creatingOrderId,
+        createOrderForProduct
     }
 }

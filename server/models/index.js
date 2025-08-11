@@ -9,17 +9,43 @@ const Product = productFactory(sequelize);
 const Order = orderFactory(sequelize);
 const OrderItem = orderItemFactory(sequelize);
 
-// ассоциации
-User.hasMany(Order, {foreignKey: 'user_id'});
-Order.belongsTo(User, {foreignKey: 'user_id'});
+User.hasMany(Order, {
+    foreignKey: 'user_id',
+    onDelete: 'CASCADE'
+});
 
-Order.belongsToMany(Product, {through: OrderItem, foreignKey: 'order_id'});
-Product.belongsToMany(Order, {through: OrderItem, foreignKey: 'product_id'});
+Order.belongsTo(User, {
+    foreignKey: 'user_id'
+});
 
-Order.hasMany(OrderItem, {foreignKey: 'order_id'});
-OrderItem.belongsTo(Order, {foreignKey: 'order_id'});
+Order.hasMany(OrderItem, {
+    foreignKey: 'order_id',
+    onDelete: 'CASCADE'
+});
 
-Product.hasMany(OrderItem, {foreignKey: 'product_id'});
-OrderItem.belongsTo(Product, {foreignKey: 'product_id'});
+OrderItem.belongsTo(Order, {
+    foreignKey: 'order_id'
+});
+
+Product.hasMany(OrderItem, {
+    foreignKey: 'product_id',
+    onDelete: 'CASCADE'
+});
+
+OrderItem.belongsTo(Product, {
+    foreignKey: 'product_id'
+});
+
+Order.belongsToMany(Product, {
+    through: OrderItem,
+    foreignKey: 'order_id',
+    otherKey: 'product_id'
+});
+
+Product.belongsToMany(Order, {
+    through: OrderItem,
+    foreignKey: 'product_id',
+    otherKey: 'order_id'
+});
 
 export {sequelize, User, Product, Order, OrderItem};
